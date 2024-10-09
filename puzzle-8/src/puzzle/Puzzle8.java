@@ -1,6 +1,8 @@
 package puzzle;
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Stack;
 
@@ -12,12 +14,8 @@ public class Puzzle8 extends JFrame {
     private Stack<Integer[]> redoStack = new Stack<>();
 
     public Puzzle8() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
-        Integer[] estadoInicial = {2, 1, 4, 3, 7, 6, 5, null, 8};
-        for(int i=0; i<estadoInicial.length; i++) {
-            if(estadoInicial[i] == null) {
-                indexVacio = i;
-            }
-        }
+        Integer[] estadoInicial = mezclarTablero();
+        indexVacio = buscarNulo(estadoInicial);
         estadoActualDeLaPila.push(estadoInicial);
 
         setTitle("Puzzle 8");
@@ -61,6 +59,35 @@ public class Puzzle8 extends JFrame {
         add(redoButton);
 
         actualizarTablero();
+    }
+
+    private int buscarNulo(Integer[] tablero) {
+        for(int i=0; i<tablero.length; i++) {
+            if(tablero[i] == null) {
+                return i;
+            }
+
+        }
+        return 0;
+    }
+
+    private Integer[] mezclarTablero() {
+        Integer[] fichas =  new Integer[9];
+        ArrayList<Integer> numeros = new ArrayList<>();
+
+        for(int i=0; i<=8; i++) {
+            numeros.add(i);
+        }
+
+        Collections.shuffle(numeros);
+        for(int i=0; i<=8; i++) {
+            fichas[i] = (numeros.get(i) != 0 ? numeros.get(i) : null);
+            if(numeros.get(i) == 0) {
+                fichas[i] = null;
+            }
+            fichas[i] = numeros.get(i);
+        }
+        return fichas;
     }
 
     private void actualizarTablero() throws ExcepcionDePilaVacia {
