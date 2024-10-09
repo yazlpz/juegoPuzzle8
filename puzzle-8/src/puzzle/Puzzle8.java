@@ -1,26 +1,23 @@
 package puzzle;
-
 import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
 import java.util.Stack;
 
 public class Puzzle8 extends JFrame {
-    private PilaEstatica<Integer[]> estadoActualDeLaPila = new PilaEstatica<>(9);
+    private PilaDinamica<Integer[]> estadoActualDeLaPila = new PilaDinamica<>();
     private JButton[] buttons = new JButton[9];
     private int indexVacio;
     private Stack<Integer[]> undoStack = new Stack<>();
     private Stack<Integer[]> redoStack = new Stack<>();
 
     public Puzzle8() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
-        // Se tiene que cambiar para que sea random el estado inicial
         Integer[] estadoInicial = {2, 1, 4, 3, 7, 6, 5, null, 8};
         for(int i=0; i<estadoInicial.length; i++) {
             if(estadoInicial[i] == null) {
                 indexVacio = i;
             }
         }
-        // Integer[] estadoInicial = {1, 2, 3, 4, 5, 6, 7, 8, null};
         estadoActualDeLaPila.push(estadoInicial);
 
         setTitle("Puzzle 8");
@@ -36,7 +33,7 @@ public class Puzzle8 extends JFrame {
             buttons[i].addActionListener(e -> {
                 try {
                     moverFicha(index);
-                } catch (ExcepcionDePilaVacia ex) {
+                } catch (ExcepcionDePilaVacia | ExcepcionDePilaLlena ex) {
                     throw new RuntimeException(ex);
                 }
             });
@@ -45,13 +42,21 @@ public class Puzzle8 extends JFrame {
 
         JButton undoButton = new JButton("Deshacer");
         undoButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(null,"Deshacer");
+            try {
+                undo();
+            } catch (ExcepcionDePilaVacia | ExcepcionDePilaLlena ex) {
+                JOptionPane.showMessageDialog(this, "Ya no se puede deshacer");
+            }
         });
         add(undoButton);
 
         JButton redoButton = new JButton("Rehacer");
         redoButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(null,"Rehacer");
+            try {
+                redo();
+            } catch (ExcepcionDePilaLlena | ExcepcionDePilaVacia ex) {
+                JOptionPane.showMessageDialog(this, "Ya no se puede rehacer");
+            }
         });
         add(redoButton);
 
@@ -65,14 +70,16 @@ public class Puzzle8 extends JFrame {
         }
     }
 
-    private void moverFicha(int index) throws ExcepcionDePilaVacia {
-        Integer[] estadoActual = estadoActualDeLaPila.top();
-
+    private void moverFicha(int index) throws ExcepcionDePilaVacia, ExcepcionDePilaLlena {
+        Integer[] estadoActual = estadoActualDeLaPila.top().clone();
         System.out.println("Intentando mover desde " + index + " a " + indexVacio);
         if (esAdyacente(index, indexVacio)) {
+            undoStack.push(estadoActual.clone());  // Clonamos el estado antes de hacer push
+            redoStack.clear();  // Limpia la pila de rehacer después de un nuevo movimiento
             estadoActual[indexVacio] = estadoActual[index];
             estadoActual[index] = null;
             indexVacio = index;
+            estadoActualDeLaPila.push(estadoActual.clone());  // Clonamos el estado de nuevo antes de hacer push
             actualizarTablero();
 
             if (verificarVictoria()) {
@@ -83,15 +90,12 @@ public class Puzzle8 extends JFrame {
         }
     }
 
-
-
     private boolean esAdyacente(int index1, int index2) {
         return (index1 == index2 - 1 && index1 % 3 != 2) || // izquierda
                 (index1 == index2 + 1 && index2 % 3 != 2) || // derecha
                 (index1 == index2 - 3) || // arriba
                 (index1 == index2 + 3);   // abajo
     }
-
 
     private boolean verificarVictoria() throws ExcepcionDePilaVacia {
         Integer[] estadoGanador = {1, 2, 3, 4, 5, 6, 7, 8, null};
@@ -104,23 +108,30 @@ public class Puzzle8 extends JFrame {
         return true;
     }
 
-    private void undo() throws ExcepcionDePilaVacia {
+    private void undo() throws ExcepcionDePilaVacia, ExcepcionDePilaLlena {
         if (!undoStack.isEmpty()) {
             Integer[] currentState = estadoActualDeLaPila.top();
-            redoStack.push(currentState.clone());
-            estadoActualDeLaPila.pop();
+            redoStack.push(currentState.clone());  // Guarda el estado actual en la pila de rehacer antes de deshacer
+            estadoActualDeLaPila.pop();  // Quita el estado actual de la pila
+            Integer[] previousState = undoStack.pop();  // Recupera el estado anterior
+            estadoActualDeLaPila.push(previousState.clone());
             indexVacio = buscarVacio();
             actualizarTablero();
+        } else {
+            JOptionPane.showMessageDialog(this, "No hay más movimientos para deshacer");
         }
     }
 
     private void redo() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
         if (!redoStack.isEmpty()) {
             Integer[] currentState = estadoActualDeLaPila.top();
-            undoStack.push(currentState.clone());
-            estadoActualDeLaPila.push(redoStack.pop());
+            undoStack.push(currentState.clone());  // Guarda el estado actual en la pila de deshacer antes de rehacer
+            Integer[] nextState = redoStack.pop();  // Recupera el estado para rehacer
+            estadoActualDeLaPila.push(nextState.clone());
             indexVacio = buscarVacio();
             actualizarTablero();
+        } else {
+            JOptionPane.showMessageDialog(this, "No hay más movimientos para rehacer");
         }
     }
 
