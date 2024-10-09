@@ -1,19 +1,28 @@
 package puzzle;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 import java.util.Stack;
 
 public class Puzzle8 extends JFrame {
-    private Integer[] currentState = {(Integer) 1, (Integer) 2, (Integer) 3, (Integer) 4, (Integer) 5, (Integer) 6, (Integer) 7, (Integer) 8, null};
+    private PilaEstatica<Integer[]> estadoActualDeLaPila = new PilaEstatica<>(9);
     private JButton[] buttons = new JButton[9];
-
-    Stack<Integer> s = new Stack<>();
-
-    private int emptyIndex = 8;
+    private int indexVacio;
     private Stack<Integer[]> undoStack = new Stack<>();
     private Stack<Integer[]> redoStack = new Stack<>();
 
-    public Puzzle8() {
+    public Puzzle8() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
+        // Se tiene que cambiar para que sea random el estado inicial
+        Integer[] estadoInicial = {2, 1, 4, 3, 7, 6, 5, null, 8};
+        for(int i=0; i<estadoInicial.length; i++) {
+            if(estadoInicial[i] == null) {
+                indexVacio = i;
+            }
+        }
+        // Integer[] estadoInicial = {1, 2, 3, 4, 5, 6, 7, 8, null};
+        estadoActualDeLaPila.push(estadoInicial);
+
         setTitle("Puzzle 8");
         setSize(300, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -21,35 +30,102 @@ public class Puzzle8 extends JFrame {
 
         for (int i = 0; i < 9; i++) {
             buttons[i] = new JButton();
-            buttons[i].setFont(new Font("Arial", Font.PLAIN, 40));
+            buttons[i].setFont(new Font("Arial", Font.PLAIN, 35));
             buttons[i].setFocusPainted(false);
-            int index = i; // Variable final para el listener
-            buttons[i].addActionListener(e -> showMessage("Boton " + index + " clickeado"));
+            int index = i;
+            buttons[i].addActionListener(e -> {
+                try {
+                    moverFicha(index);
+                } catch (ExcepcionDePilaVacia ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
             add(buttons[i]);
         }
 
         JButton undoButton = new JButton("Deshacer");
-        undoButton.addActionListener(e -> showMessage("Deshacer"));
+        undoButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(null,"Deshacer");
+        });
         add(undoButton);
 
         JButton redoButton = new JButton("Rehacer");
-        redoButton.addActionListener(e -> showMessage("Rehacer"));
+        redoButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(null,"Rehacer");
+        });
         add(redoButton);
 
-        updateBoard();
+        actualizarTablero();
     }
 
-    private int[][] updateBoard() {
+    private void actualizarTablero() throws ExcepcionDePilaVacia {
+        Integer[] estadoActual = estadoActualDeLaPila.top();
         for (int i = 0; i < 9; i++) {
-            s.push(Integer.valueOf(10));
-            buttons[i].setText(currentState[i] != null ? currentState[i].toString() : "");
+            buttons[i].setText(estadoActual[i] != null ? estadoActual[i].toString() : "");
         }
-        return null;
     }
-    //recorrer arreglo y meter a la pila el elemento<-----
 
-    //busca el espacio en blanco en el tablero
-    private int buscarVacio() {
+    private void moverFicha(int index) throws ExcepcionDePilaVacia {
+        Integer[] estadoActual = estadoActualDeLaPila.top();
+
+        System.out.println("Intentando mover desde " + index + " a " + indexVacio);
+        if (esAdyacente(index, indexVacio)) {
+            estadoActual[indexVacio] = estadoActual[index];
+            estadoActual[index] = null;
+            indexVacio = index;
+            actualizarTablero();
+
+            if (verificarVictoria()) {
+                JOptionPane.showMessageDialog(this, "Has ganado");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Este movimiento no es posible");
+        }
+    }
+
+
+
+    private boolean esAdyacente(int index1, int index2) {
+        return (index1 == index2 - 1 && index1 % 3 != 2) || // izquierda
+                (index1 == index2 + 1 && index2 % 3 != 2) || // derecha
+                (index1 == index2 - 3) || // arriba
+                (index1 == index2 + 3);   // abajo
+    }
+
+
+    private boolean verificarVictoria() throws ExcepcionDePilaVacia {
+        Integer[] estadoGanador = {1, 2, 3, 4, 5, 6, 7, 8, null};
+        Integer[] estadoActual = estadoActualDeLaPila.top();
+        for (int i = 0; i < estadoActual.length; i++) {
+            if (!Objects.equals(estadoActual[i], estadoGanador[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void undo() throws ExcepcionDePilaVacia {
+        if (!undoStack.isEmpty()) {
+            Integer[] currentState = estadoActualDeLaPila.top();
+            redoStack.push(currentState.clone());
+            estadoActualDeLaPila.pop();
+            indexVacio = buscarVacio();
+            actualizarTablero();
+        }
+    }
+
+    private void redo() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
+        if (!redoStack.isEmpty()) {
+            Integer[] currentState = estadoActualDeLaPila.top();
+            undoStack.push(currentState.clone());
+            estadoActualDeLaPila.push(redoStack.pop());
+            indexVacio = buscarVacio();
+            actualizarTablero();
+        }
+    }
+
+    private int buscarVacio() throws ExcepcionDePilaVacia {
+        Integer[] currentState = estadoActualDeLaPila.top();
         for (int i = 0; i < currentState.length; i++) {
             if (currentState[i] == null) {
                 return i;
@@ -57,28 +133,5 @@ public class Puzzle8 extends JFrame {
         }
         return -1;
     }
-
-    private void undo() {
-        if (!undoStack.isEmpty()) {
-            redoStack.push(currentState.clone());
-            currentState = undoStack.pop();
-            emptyIndex = buscarVacio();
-            updateBoard();
-        }
-    }
-
-    private void redo() {
-        if (!redoStack.isEmpty()) {
-            undoStack.push(currentState.clone());
-            currentState = redoStack.pop();
-            emptyIndex = buscarVacio();
-            updateBoard();
-        }
-    }
-
-    private void showMessage(String message) {
-        JOptionPane.showMessageDialog(this, message);
-    }
-
 
 }
