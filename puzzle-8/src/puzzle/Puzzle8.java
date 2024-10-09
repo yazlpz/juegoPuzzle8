@@ -4,14 +4,13 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
-import java.util.Stack;
 
 public class Puzzle8 extends JFrame {
     private PilaDinamica<Integer[]> estadoActualDeLaPila = new PilaDinamica<>();
     private JButton[] buttons = new JButton[9];
     private int indexVacio;
-    private Stack<Integer[]> undoStack = new Stack<>();
-    private Stack<Integer[]> redoStack = new Stack<>();
+    private PilaDinamica<Integer[]> undoStack = new PilaDinamica<>();
+    private PilaDinamica<Integer[]> redoStack = new PilaDinamica<>();
 
     public Puzzle8() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
         Integer[] estadoInicial = mezclarTablero();
@@ -82,10 +81,6 @@ public class Puzzle8 extends JFrame {
         Collections.shuffle(numeros);
         for(int i=0; i<=8; i++) {
             fichas[i] = (numeros.get(i) != 0 ? numeros.get(i) : null);
-            if(numeros.get(i) == 0) {
-                fichas[i] = null;
-            }
-            fichas[i] = numeros.get(i);
         }
         return fichas;
     }
@@ -99,7 +94,6 @@ public class Puzzle8 extends JFrame {
 
     private void moverFicha(int index) throws ExcepcionDePilaVacia, ExcepcionDePilaLlena {
         Integer[] estadoActual = estadoActualDeLaPila.top().clone();
-        System.out.println("Intentando mover desde " + index + " a " + indexVacio);
         if (esAdyacente(index, indexVacio)) {
             undoStack.push(estadoActual.clone());  // Clonamos el estado antes de hacer push
             redoStack.clear();  // Limpia la pila de rehacer después de un nuevo movimiento
@@ -110,6 +104,7 @@ public class Puzzle8 extends JFrame {
             actualizarTablero();
 
             if (verificarVictoria()) {
+                actualizarTablero();
                 JOptionPane.showMessageDialog(this, "Has ganado");
             }
         } else {

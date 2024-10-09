@@ -57,4 +57,9 @@ public class PilaDinamica<E> implements Pila<E> {
 		return this.size;
 	}
 
+	public void clear() {
+		this.sp = null;
+		this.size = 0;
+	}
+
 }
