@@ -8,13 +8,19 @@ import java.util.Stack;
 public class Puzzle8 extends JFrame {
     private PilaEstatica<Integer[]> estadoActualDeLaPila = new PilaEstatica<>(9);
     private JButton[] buttons = new JButton[9];
-    private int indexVacio = 8;
+    private int indexVacio;
     private Stack<Integer[]> undoStack = new Stack<>();
     private Stack<Integer[]> redoStack = new Stack<>();
 
     public Puzzle8() throws ExcepcionDePilaLlena, ExcepcionDePilaVacia {
         // Se tiene que cambiar para que sea random el estado inicial
-        Integer[] estadoInicial = {1, 2, 3, 4, 5, 6, 7, 8, null};
+        Integer[] estadoInicial = {2, 1, 4, 3, 7, 6, 5, null, 8};
+        for(int i=0; i<estadoInicial.length; i++) {
+            if(estadoInicial[i] == null) {
+                indexVacio = i;
+            }
+        }
+        // Integer[] estadoInicial = {1, 2, 3, 4, 5, 6, 7, 8, null};
         estadoActualDeLaPila.push(estadoInicial);
 
         setTitle("Puzzle 8");
@@ -62,11 +68,11 @@ public class Puzzle8 extends JFrame {
     private void moverFicha(int index) throws ExcepcionDePilaVacia {
         Integer[] estadoActual = estadoActualDeLaPila.top();
 
+        System.out.println("Intentando mover desde " + index + " a " + indexVacio);
         if (esAdyacente(index, indexVacio)) {
             estadoActual[indexVacio] = estadoActual[index];
             estadoActual[index] = null;
             indexVacio = index;
-            System.out.println("Index Nulo: " + indexVacio);
             actualizarTablero();
 
             if (verificarVictoria()) {
@@ -77,12 +83,15 @@ public class Puzzle8 extends JFrame {
         }
     }
 
+
+
     private boolean esAdyacente(int index1, int index2) {
-        return (index1 == index2 - 1 && index1 % 3 != 2) ||
-                (index1 == index2 + 1 && index2 % 3 != 2) ||
-                (index1 == index2 - 3) ||
-                (index1 == index2 + 3);
+        return (index1 == index2 - 1 && index1 % 3 != 2) || // izquierda
+                (index1 == index2 + 1 && index2 % 3 != 2) || // derecha
+                (index1 == index2 - 3) || // arriba
+                (index1 == index2 + 3);   // abajo
     }
+
 
     private boolean verificarVictoria() throws ExcepcionDePilaVacia {
         Integer[] estadoGanador = {1, 2, 3, 4, 5, 6, 7, 8, null};
